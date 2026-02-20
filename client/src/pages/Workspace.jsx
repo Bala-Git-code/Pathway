@@ -3,10 +3,11 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import AIInterpretationPanel from "../components/AIInterpretationPanel";
 import GraphViewer from "../components/GraphViewer";
 import PerturbationPanel from "../components/PerturbationPanel";
+import StepIndicator from "../components/StepIndicator";
 import { pathwayApi } from "../services/api";
 
 const emptyPathway = {
-  name: "Untitled Pathway",
+  name: "",
   nodes: [],
   edges: [],
 };
@@ -28,6 +29,9 @@ export default function Workspace() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [showNodeModal, setShowNodeModal] = useState(false);
+  const [showLoadModal, setShowLoadModal] = useState(false);
+  const [availablePathways, setAvailablePathways] = useState([]);
+  const [loadingPaths, setLoadingPaths] = useState(false);
   const [nodeIdInput, setNodeIdInput] = useState("");
   const [nodeLabelInput, setNodeLabelInput] = useState("");
   const [edgeSource, setEdgeSource] = useState("");
@@ -38,15 +42,25 @@ export default function Workspace() {
 
   const pathwayIdFromQuery = useMemo(() => searchParams.get("pathwayId"), [searchParams]);
 
+  // determine current workflow step
+  const currentStep = useMemo(() => {
+    if (analysis) return 3;
+    if (pathwayId) return 2;
+    return 1;
+  }, [analysis, pathwayId]);
+
   useEffect(() => {
+    // only attempt to load if an explicit id is provided, otherwise start blank
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
 
+    if (!pathwayIdFromQuery) {
+      return;
+    }
+
     const fetchPathway = async () => {
       try {
-        const response = pathwayIdFromQuery
-          ? await pathwayApi.getById(pathwayIdFromQuery)
-          : await pathwayApi.getLatest();
+        const response = await pathwayApi.getById(pathwayIdFromQuery);
         setBuilderPathway({
           name: response.data.name,
           nodes: response.data.nodes || [],
@@ -54,10 +68,14 @@ export default function Workspace() {
         });
         setPathwayId(response.data._id);
       } catch (requestError) {
-        setError(
-          requestError?.response?.data?.message ||
-            "Unable to load pathway. Please verify backend connectivity."
-        );
+        if (requestError?.response?.status === 404) {
+          setError("Requested pathway not found.");
+        } else {
+          setError(
+            requestError?.response?.data?.message ||
+              "Unable to load pathway. Please verify backend connectivity."
+          );
+        }
       }
     };
 
@@ -110,6 +128,36 @@ export default function Workspace() {
     setSuccessMessage("Interaction added.");
     setError("");
     clearSimulationState();
+  };
+
+  const loadExistingPathway = async (id) => {
+    try {
+      const resp = await pathwayApi.getById(id);
+      setBuilderPathway({
+        name: resp.data.name,
+        nodes: resp.data.nodes || [],
+        edges: resp.data.edges || [],
+      });
+      setPathwayId(resp.data._id);
+      setSuccessMessage("Loaded pathway.");
+      clearSimulationState();
+      setShowLoadModal(false);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to load pathway.");
+    }
+  };
+
+  const openLoadModal = async () => {
+    setLoadingPaths(true);
+    try {
+      const resp = await pathwayApi.getAll();
+      setAvailablePathways(resp.data || []);
+      setShowLoadModal(true);
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to fetch pathways.");
+    } finally {
+      setLoadingPaths(false);
+    }
   };
 
   const handleSavePathway = async () => {
@@ -200,25 +248,42 @@ export default function Workspace() {
 
   const originalPathway = comparisonState.before || builderPathway;
   const perturbedPathway = comparisonState.after || builderPathway;
-  const handleNodeClick = useCallback((node) => {
+
+  const metrics = useMemo(() => {
+    if (!analysis) return null;
+    const totalNodes = perturbedPathway.nodes.length;
+    const totalEdges = perturbedPathway.edges.length;
+    const beforeEdges = originalPathway.edges.length;
+    const connectivityChangePercent =
+      beforeEdges > 0
+        ? (((totalEdges - beforeEdges) / beforeEdges) * 100).toFixed(1)
+        : "0.0";
+    const influentialEntry = Object.entries(analysis.degreeCentrality || {}).sort(
+      (a, b) => b[1] - a[1]
+    )[0] || [];
+    const mostInfluentialNode = influentialEntry[0] || "N/A";
+    return { totalNodes, totalEdges, connectivityChangePercent, mostInfluentialNode };
+  }, [analysis, originalPathway.edges.length, perturbedPathway.edges.length, perturbedPathway.nodes.length]);  const handleNodeClick = useCallback((node) => {
     setSelectedNodeId(node.id);
     setSelectedNodeDetails(node);
   }, []);
 
   return (
     <section className="space-y-4">
-      <header className="rounded-2xl border border-cyan-900/60 bg-slate-950/70 p-5 shadow-[0_0_40px_rgba(34,211,238,0.15)] backdrop-blur">
+      <header className="space-y-2 rounded-2xl border border-cyan-900/60 bg-slate-950/70 p-5 shadow-[0_0_40px_rgba(34,211,238,0.15)] backdrop-blur">
+        <StepIndicator currentStep={currentStep} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold text-cyan-100">Workspace</h1>
             <p className="mt-1 text-sm text-slate-300">
-              Construct pathway topology, run perturbations, and inspect network transitions.
+              Build your network, run experiments, and review results in sequence.
             </p>
           </div>
           <button
             type="button"
             onClick={() => navigate("/analysis")}
-            className="rounded-md border border-cyan-500/50 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/20"
+            disabled={!analysis}
+            className="rounded-md border border-cyan-500/50 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-200 hover:bg-cyan-400/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Open Analysis View
           </button>
@@ -339,6 +404,39 @@ export default function Workspace() {
             onSelectPerturbationType={setPerturbationType}
             onApply={runPerturbation}
           />
+          {analysis && (
+            <section className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Total Nodes</p>
+                <p className="mt-2 text-2xl font-semibold text-cyan-200">
+                  {metrics?.totalNodes}
+                </p>
+              </div>
+              <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">Total Edges</p>
+                <p className="mt-2 text-2xl font-semibold text-cyan-200">
+                  {metrics?.totalEdges}
+                </p>
+              </div>
+              <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
+                  Connectivity Change %
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-cyan-200">
+                  {metrics?.connectivityChangePercent}%
+                </p>
+              </div>
+              <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
+                  Most Influential Node
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-cyan-200">
+                  {metrics?.mostInfluentialNode}
+                </p>
+              </div>
+            </section>
+          )
+          }
 
           <section className="rounded-2xl border border-cyan-900/60 bg-slate-950/75 p-4">
             <h2 className="text-base font-semibold text-cyan-200">Node Inspector</h2>
@@ -361,7 +459,7 @@ export default function Workspace() {
             )}
           </section>
 
-          <AIInterpretationPanel analysis={analysis} />
+          {analysis && <AIInterpretationPanel analysis={analysis} />}
         </aside>
       </div>
 
@@ -405,6 +503,36 @@ export default function Workspace() {
                 className="rounded-md bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
               >
                 Add Node
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showLoadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-cyan-900/60 bg-slate-900 p-5 shadow-[0_0_40px_rgba(34,211,238,0.2)]">
+            <h2 className="text-lg font-semibold text-cyan-200">Available Pathways</h2>
+            <div className="mt-4 max-h-[60vh] overflow-auto space-y-2">
+              {availablePathways.length === 0 && (
+                <p className="text-sm text-slate-400">No saved pathways found.</p>
+              )}
+              {availablePathways.map((pw) => (
+                <button
+                  key={pw._id}
+                  onClick={() => loadExistingPathway(pw._id)}
+                  className="block w-full rounded-md bg-slate-800 px-4 py-2 text-left text-sm text-cyan-200 hover:bg-slate-700"
+                >
+                  {pw.name || pw._id}
+                </button>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowLoadModal(false)}
+                className="rounded-md border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+              >
+                Close
               </button>
             </div>
           </div>

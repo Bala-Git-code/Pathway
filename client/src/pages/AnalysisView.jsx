@@ -22,9 +22,11 @@ export default function AnalysisView() {
   const [perturbedPathway, setPerturbedPathway] = useState({ name: "", nodes: [], edges: [] });
   const [analysis, setAnalysis] = useState({});
   const [statusText, setStatusText] = useState("Loading analysis framework...");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
       try {
         const snapshotRaw = localStorage.getItem(SIMULATION_STORAGE_KEY);
         if (snapshotRaw) {
@@ -35,27 +37,13 @@ export default function AnalysisView() {
           setStatusText(
             `Analysis generated from latest simulation at ${new Date(snapshot.timestamp).toLocaleString()}.`
           );
-          return;
+        } else {
+          setStatusText("No simulation data found. Run a perturbation in the Workspace first.");
         }
-
-        const latest = await pathwayApi.getLatest();
-        const baseline = latest.data;
-        const baselineCentrality = calculateDegree(baseline);
-        setOriginalPathway(baseline);
-        setPerturbedPathway(baseline);
-        setAnalysis({
-          degreeCentrality: baselineCentrality,
-          centralityComparison: { before: baselineCentrality, after: baselineCentrality },
-          affected_nodes: [],
-          summary: "Baseline pathway loaded. Execute a perturbation in Workspace for comparative impact.",
-          predicted_outcome:
-            "No perturbation has been applied yet. Current metrics describe the baseline network.",
-          biological_context:
-            "This baseline captures pathway topology and node influence prior to simulation.",
-        });
-        setStatusText("No prior simulation found. Showing baseline network analysis.");
       } catch (error) {
-        setStatusText("Unable to load pathway analysis data. Check backend connectivity.");
+        setStatusText("Unable to load analysis data. Check storage or backend.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -101,39 +89,49 @@ export default function AnalysisView() {
 
   return (
     <section className="space-y-4">
-      <header className="rounded-2xl border border-cyan-900/60 bg-slate-950/70 p-5">
+      <header className="relative rounded-2xl border border-cyan-900/60 bg-slate-950/70 p-5">
         <h1 className="text-2xl font-semibold text-cyan-100">Analysis View</h1>
         <p className="mt-1 text-sm text-slate-300">
           Structural metrics, perturbation impact quantification, and AI biological interpretation.
         </p>
         <p className="mt-2 text-xs text-slate-400">{statusText}</p>
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-slate-950/60">
+            <div className="flex items-center gap-2 rounded-md border border-cyan-800/50 bg-slate-900/80 px-4 py-2 text-sm text-cyan-200">
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-cyan-300 border-t-transparent" />
+              Loading analysis…
+            </div>
+          </div>
+        )}
       </header>
 
-      <GraphViewer
-        originalPathway={originalPathway}
-        perturbedPathway={perturbedPathway}
-        analysis={analysis}
-        selectedNodeId=""
-        pendingKnockoutNode=""
-        onNodeClick={handleNodeClick}
-      />
+      {analysis ? (
+        <>
+          <GraphViewer
+            originalPathway={originalPathway}
+            perturbedPathway={perturbedPathway}
+            analysis={analysis}
+            selectedNodeId=""
+            pendingKnockoutNode=""
+            onNodeClick={handleNodeClick}
+          />
 
-      <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
           <p className="text-xs uppercase tracking-wide text-slate-400">Total Nodes</p>
-          <p className="mt-2 text-2xl font-semibold text-cyan-200">{metrics.totalNodes}</p>
+          <p className="mt-2 text-2xl font-semibold text-cyan-200 transition-all duration-500 ease-in-out">{metrics.totalNodes}</p>
         </div>
         <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
           <p className="text-xs uppercase tracking-wide text-slate-400">Total Edges</p>
-          <p className="mt-2 text-2xl font-semibold text-cyan-200">{metrics.totalEdges}</p>
+          <p className="mt-2 text-2xl font-semibold text-cyan-200 transition-all duration-500 ease-in-out">{metrics.totalEdges}</p>
         </div>
         <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
           <p className="text-xs uppercase tracking-wide text-slate-400">Connectivity Change %</p>
-          <p className="mt-2 text-2xl font-semibold text-cyan-200">{metrics.connectivityChangePercent}%</p>
+          <p className="mt-2 text-2xl font-semibold text-cyan-200 transition-all duration-500 ease-in-out">{metrics.connectivityChangePercent}%</p>
         </div>
         <div className="rounded-xl border border-cyan-900/60 bg-slate-950/75 p-4">
           <p className="text-xs uppercase tracking-wide text-slate-400">Most Influential Node</p>
-          <p className="mt-2 text-2xl font-semibold text-cyan-200">{metrics.mostInfluentialNode}</p>
+          <p className="mt-2 text-2xl font-semibold text-cyan-200 transition-all duration-500 ease-in-out">{metrics.mostInfluentialNode}</p>
         </div>
       </section>
 
@@ -183,7 +181,9 @@ export default function AnalysisView() {
         </div>
       </section>
 
-      <AIInterpretationPanel analysis={analysis} />
+          <AIInterpretationPanel analysis={analysis} />
+        </>
+      ) : null}
     </section>
   );
 }

@@ -52,6 +52,9 @@ function baseStyle() {
         "line-color": "#64748b",
         "target-arrow-color": "#64748b",
         opacity: 0.95,
+        "transition-property": "line-color,opacity,width",
+        "transition-duration": "500ms",
+        "transition-timing-function": "ease-in-out",
       },
     },
     {
@@ -81,7 +84,8 @@ function baseStyle() {
         "background-color": "#facc15",
         color: "#111827",
         "border-color": "#fde047",
-        "border-width": 4,
+        "border-width": 6,
+        // cytoscape doesn't support shadows; will add animation in JS
       },
     },
     {
@@ -101,6 +105,7 @@ function baseStyle() {
       style: {
         "border-color": "#22d3ee",
         "border-width": 4,
+        // pulse animation handled via cytoscape.animate
       },
     },
     {
@@ -222,6 +227,7 @@ export default function GraphViewer({
     if (!perturbedCyRef.current || !pendingKnockoutNode) return;
     const targetNode = perturbedCyRef.current.$id(pendingKnockoutNode);
     if (targetNode.length === 0) return;
+    // fade-out animation for knockout preview
     targetNode.animate(
       {
         style: { opacity: 0.05, "background-color": "#ef4444" },
@@ -229,6 +235,45 @@ export default function GraphViewer({
       { duration: 420 }
     );
   }, [pendingKnockoutNode]);
+
+  // animate high-centrality nodes by pulsing border-width, with cancel guard
+  useEffect(() => {
+    let canceled = false;
+    const perturbedCy = perturbedCyRef.current;
+    if (!perturbedCy) return;
+    (analysis?.highCentralityNodes || []).forEach((id) => {
+      const node = perturbedCy.$id(id);
+      if (node.length === 0) return;
+      node.animate({ style: { "border-width": 10 } }, { duration: 600 }).then(() => {
+        if (!canceled && perturbedCyRef.current) {
+          node.animate({ style: { "border-width": 6 } }, { duration: 600 });
+        }
+      });
+    });
+    return () => {
+      canceled = true;
+    };
+  }, [analysis?.highCentralityNodes]);
+
+
+  // pulse affected nodes when they change, with cancel guard
+  useEffect(() => {
+    let canceled = false;
+    const perturbedCy = perturbedCyRef.current;
+    if (!perturbedCy) return;
+    (analysis?.affected_nodes || []).forEach((id) => {
+      const node = perturbedCy.$id(id);
+      if (node.length === 0) return;
+      node.animate({ style: { "border-width": 8 } }, { duration: 500 }).then(() => {
+        if (!canceled && perturbedCyRef.current) {
+          node.animate({ style: { "border-width": 4 } }, { duration: 500 });
+        }
+      });
+    });
+    return () => {
+      canceled = true;
+    };
+  }, [analysis?.affected_nodes]);
 
   return (
     <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">

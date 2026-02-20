@@ -1,6 +1,6 @@
 # Bio Pathway AI
 
-AI-enabled MERN platform for biological pathway construction, perturbation simulation, graph analytics, and downstream biological interpretation.
+AI-enabled MERN platform for **user‑driven** biological pathway construction, dynamic perturbation simulation, graph analytics, and downstream AI‑powered biological interpretation.
 
 ## Tech Stack
 
@@ -51,7 +51,7 @@ bio-pathway-ai/
 
 ## Features
 
-- Create and persist biological pathway networks (nodes + edges)
+- Create and persist biological pathway networks (nodes + edges) starting from a blank slate
 - Full CRUD API for pathways
 - Simulate:
   - Node knockout (removes node and connected edges)
@@ -182,7 +182,7 @@ Example perturbation payload:
 ```json
 {
   "type": "knockout",
-  "nodeId": "EGFR"
+  "nodeId": "NODE_ID_HERE"
 }
 ```
 
@@ -192,9 +192,9 @@ Example perturbation payload:
 
 ## Workflow Summary
 
-1. Create a pathway from Home by submitting nodes/edges JSON.
-2. Open Dashboard for graph visualization.
-3. Select a target node and perturbation type.
-4. Run simulation and compare before/after graphs.
-5. Review centrality, regulatory ranking, and AI analysis.
+1. Build your pathway interactively in the Workspace (nodes, edges, name).
+2. Save or load pathways; each network is persisted to the database.
+3. Select a node and perturbation (knockout/overexpression) once a pathway exists.
+4. Run AI‑assisted simulation; results are stored and displayed with live animations.
+5. Visit the Analysis view for rich metrics, comparisons, and an AI biological interpretation panel.
 

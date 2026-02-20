@@ -1,20 +1,26 @@
 import React from "react";
 
 export default function AIInterpretationPanel({ analysis }) {
-  const summary = analysis?.summary || "Awaiting model interpretation from the latest simulation.";
-  const affectedNodes = analysis?.affected_nodes || [];
-  const predictedOutcome =
-    analysis?.predicted_outcome || "Predicted outcome will appear after perturbation.";
-  const biologicalContext =
-    analysis?.biological_context ||
-    "Biological context will be generated after AI interpretation is complete.";
+  if (!analysis) {
+    return (
+      <section className="rounded-2xl border border-slate-800 bg-slate-900/50 p-4 text-center text-sm text-slate-400">
+        <h2 className="text-base font-semibold text-cyan-200">AI Interpretation</h2>
+        <p className="mt-2">Run a perturbation to obtain a biological interpretation from the AI engine.</p>
+      </section>
+    );
+  }
+
+  const summary = analysis.summary || "";
+  const affectedNodes = analysis.affected_nodes || [];
+  const predictedOutcome = analysis.predicted_outcome || "";
+  const biologicalContext = analysis.biological_context || "";
 
   return (
     <section className="rounded-2xl border border-cyan-900/60 bg-slate-950/75 p-4 shadow-[0_0_30px_rgba(34,211,238,0.12)]">
       <h2 className="text-base font-semibold text-cyan-200">AI Interpretation Panel</h2>
-      {analysis?.aiWarning && (
-        <p className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          {analysis.aiWarning}
+      {analysis.aiError && (
+        <p className="mt-3 rounded-md border border-rose-500/50 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+          {analysis.aiError}
         </p>
       )}
       <div className="mt-4 space-y-4">
@@ -35,7 +41,7 @@ export default function AIInterpretationPanel({ analysis }) {
                 </span>
               ))
             ) : (
-              <span className="text-sm text-slate-400">No affected nodes reported yet.</span>
+              <span className="text-sm text-slate-400">No affected nodes reported.</span>
             )}
           </div>
         </div>

@@ -7,24 +7,7 @@ const {
 } = require("../utils/graphSimulation");
 const { generatePathwayAnalysis } = require("./aiController");
 
-const defaultPathwayTemplate = {
-  name: "EGFR Signaling Pathway",
-  nodes: [
-    { id: "EGFR", label: "EGFR" },
-    { id: "RAS", label: "RAS" },
-    { id: "RAF", label: "RAF" },
-    { id: "MEK", label: "MEK" },
-    { id: "ERK", label: "ERK" },
-    { id: "MYC", label: "MYC" },
-  ],
-  edges: [
-    { source: "EGFR", target: "RAS", type: "activation" },
-    { source: "RAS", target: "RAF", type: "activation" },
-    { source: "RAF", target: "MEK", type: "activation" },
-    { source: "MEK", target: "ERK", type: "activation" },
-    { source: "ERK", target: "MYC", type: "activation" },
-  ],
-};
+
 
 function validatePathwayPayload(body) {
   if (!body || typeof body !== "object") {
@@ -38,6 +21,12 @@ function validatePathwayPayload(body) {
   }
   if (!Array.isArray(body.edges)) {
     return "edges must be an array.";
+  }
+  // ensure node ids are unique
+  const ids = body.nodes.map((n) => n.id);
+  const dup = ids.find((id, idx) => ids.indexOf(id) !== idx);
+  if (dup) {
+    return `Duplicate node id detected: ${dup}`;
   }
   return null;
 }
@@ -123,9 +112,10 @@ async function deletePathway(req, res) {
 
 async function getLatestPathway(req, res) {
   try {
-    let pathway = await Pathway.findOne().sort({ createdAt: -1 });
+    // return the most recently created pathway; do not fabricate data if none exist
+    const pathway = await Pathway.findOne().sort({ createdAt: -1 });
     if (!pathway) {
-      pathway = await Pathway.create(defaultPathwayTemplate);
+      return res.status(404).json({ message: "No pathways available." });
     }
     return res.status(200).json(pathway);
   } catch (error) {
@@ -169,26 +159,29 @@ async function perturbPathway(req, res) {
     const beforeCentrality = calculateDegreeCentrality(original);
     const centrality = calculateDegreeCentrality(perturbed);
     const regulatoryRanking = rankRegulatoryNodes(perturbed);
-    const aiAnalysis = await generatePathwayAnalysis(
-      perturbed,
-      { type, nodeId },
-      centrality,
-      regulatoryRanking
-    );
+    // attempt AI analysis but do not let it crash the perturbation
+    let aiAnalysis = {};
+    try {
+      aiAnalysis = await generatePathwayAnalysis(
+        perturbed,
+        { type, nodeId },
+        centrality,
+        regulatoryRanking
+      );
+    } catch (aiError) {
+      aiAnalysis = {
+        summary: "AI analysis failed or unavailable.",
+        affected_nodes: [],
+        predicted_outcome: "",
+        biological_context: "",
+        aiError: aiError.message || aiError,
+      };
+    }
 
-    const updatedPathway = await Pathway.findByIdAndUpdate(
-      req.params.id,
-      {
-        name: perturbed.name,
-        nodes: perturbed.nodes,
-        edges: perturbed.edges,
-      },
-      { new: true, runValidators: true }
-    );
-
+    // do not overwrite the stored pathway; return the computed perturbation only
     return res.status(200).json({
       originalPathway: original,
-      pathway: updatedPathway,
+      pathway: perturbed,
       perturbation: { type, nodeId },
       analysis: {
         degreeCentrality: centrality,

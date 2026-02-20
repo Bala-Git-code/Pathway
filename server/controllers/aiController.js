@@ -32,42 +32,24 @@ function safeParseJson(text) {
   }
 }
 
-function normalizeAnalysis(parsed, fallbackNodes) {
+function normalizeAnalysis(parsed) {
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("AI returned invalid JSON structure.");
+  }
   return {
-    summary:
-      typeof parsed?.summary === "string"
-        ? parsed.summary
-        : "Pathway perturbation analysis completed.",
-    affected_nodes: Array.isArray(parsed?.affected_nodes)
-      ? parsed.affected_nodes
-      : fallbackNodes,
+    summary: typeof parsed.summary === "string" ? parsed.summary : "",
+    affected_nodes: Array.isArray(parsed.affected_nodes) ? parsed.affected_nodes : [],
     predicted_outcome:
-      typeof parsed?.predicted_outcome === "string"
-        ? parsed.predicted_outcome
-        : "No predicted outcome provided by model.",
+      typeof parsed.predicted_outcome === "string" ? parsed.predicted_outcome : "",
     biological_context:
-      typeof parsed?.biological_context === "string"
-        ? parsed.biological_context
-        : "Contextual biological interpretation is unavailable.",
+      typeof parsed.biological_context === "string" ? parsed.biological_context : "",
   };
-}
+} 
 
 async function generatePathwayAnalysis(pathway, perturbation, centrality, ranking) {
-  const fallbackNodes = ranking.slice(0, 3).map((item) => item.nodeId);
-
+  // ensure API key is present; nothing is returned otherwise
   if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_API_KEY.trim()) {
-    return {
-      summary: "OpenAI API key is missing. Returning deterministic local interpretation.",
-      affected_nodes: fallbackNodes,
-      predicted_outcome:
-        "Set OPENAI_API_KEY in server/.env to enable model-generated biological predictions.",
-      biological_context:
-        "Without an OpenAI key, interpretation is generated from graph heuristics only.",
-      aiWarning: "OPENAI_API_KEY is not configured.",
-      keyAffectedNodes: fallbackNodes,
-      predictedBiologicalOutcome:
-        "Set OPENAI_API_KEY in server/.env to enable model-generated biological predictions.",
-    };
+    throw new Error("OpenAI API key is not configured.");
   }
 
   try {
@@ -97,7 +79,7 @@ async function generatePathwayAnalysis(pathway, perturbation, centrality, rankin
 
     const content = completion.choices?.[0]?.message?.content || "";
     const parsed = safeParseJson(content);
-    const normalized = normalizeAnalysis(parsed, fallbackNodes);
+    const normalized = normalizeAnalysis(parsed);
 
     return {
       ...normalized,
@@ -105,18 +87,7 @@ async function generatePathwayAnalysis(pathway, perturbation, centrality, rankin
       predictedBiologicalOutcome: normalized.predicted_outcome,
     };
   } catch (error) {
-    return {
-      summary: "AI request failed. Returning fallback response.",
-      affected_nodes: fallbackNodes,
-      predicted_outcome:
-        "Unable to generate model prediction due to API error. Please verify OpenAI configuration.",
-      biological_context:
-        "Biological context could not be generated because the AI request failed.",
-      aiWarning: `OpenAI request failed: ${error.message}`,
-      keyAffectedNodes: fallbackNodes,
-      predictedBiologicalOutcome:
-        "Unable to generate model prediction due to API error. Please verify OpenAI configuration.",
-    };
+    throw new Error(`OpenAI request error: ${error.message}`);
   }
 }
 

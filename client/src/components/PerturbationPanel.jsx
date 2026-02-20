@@ -64,7 +64,9 @@ export default function PerturbationPanel({
         <button
           type="button"
           onClick={onApply}
-          disabled={isLoading || !selectedNodeId}
+          disabled={
+            isLoading || !selectedNodeId || !(pathway && Array.isArray(pathway.nodes) && pathway.nodes.length)
+          }
           className="flex w-full items-center justify-center gap-2 rounded-md bg-cyan-500/90 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
         >
           {isLoading && (

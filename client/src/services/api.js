@@ -11,7 +11,12 @@ const api = axios.create({
 export const pathwayApi = {
   create: (payload) => api.post("/pathways", payload),
   getAll: () => api.get("/pathways"),
-  getLatest: () => api.get("/pathways/latest"),
+  getLatest: () => api.get("/pathways/latest").catch((err) => {
+    if (err.response && err.response.status === 404) {
+      return { data: null };
+    }
+    throw err;
+  }),
   getById: (id) => api.get(`/pathways/${id}`),
   update: (id, payload) => api.put(`/pathways/${id}`, payload),
   remove: (id) => api.delete(`/pathways/${id}`),

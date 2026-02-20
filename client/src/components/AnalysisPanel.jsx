@@ -6,7 +6,7 @@ export default function AnalysisPanel({ analysis }) {
       <section className="rounded-2xl border border-cyan-900/60 bg-slate-950/75 p-4 backdrop-blur">
         <h2 className="text-base font-semibold text-cyan-200">Analysis</h2>
         <p className="mt-2 text-sm text-slate-400">
-          Run a perturbation to view centrality metrics and AI-driven pathway impact.
+          No analysis data available. Perform a simulation or visit the Analysis view for full metrics.
         </p>
       </section>
     );
