@@ -21,8 +21,11 @@ export default function Navbar() {
           <Link to="/" className={linkClass("/")}>
             Home
           </Link>
-          <Link to="/dashboard" className={linkClass("/dashboard")}>
-            Dashboard
+          <Link to="/workspace" className={linkClass("/workspace")}>
+            Workspace
+          </Link>
+          <Link to="/analysis" className={linkClass("/analysis")}>
+            Analysis
           </Link>
         </div>
       </div>

@@ -1,8 +1,9 @@
 import React from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
-import Dashboard from "./pages/Dashboard";
+import Workspace from "./pages/Workspace";
+import AnalysisView from "./pages/AnalysisView";
 
 function App() {
   return (
@@ -16,7 +17,9 @@ function App() {
       <main className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/workspace" element={<Workspace />} />
+          <Route path="/analysis" element={<AnalysisView />} />
+          <Route path="/dashboard" element={<Navigate to="/workspace" replace />} />
         </Routes>
       </main>
     </BrowserRouter>

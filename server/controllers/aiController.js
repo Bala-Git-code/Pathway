@@ -45,6 +45,10 @@ function normalizeAnalysis(parsed, fallbackNodes) {
       typeof parsed?.predicted_outcome === "string"
         ? parsed.predicted_outcome
         : "No predicted outcome provided by model.",
+    biological_context:
+      typeof parsed?.biological_context === "string"
+        ? parsed.biological_context
+        : "Contextual biological interpretation is unavailable.",
   };
 }
 
@@ -57,6 +61,8 @@ async function generatePathwayAnalysis(pathway, perturbation, centrality, rankin
       affected_nodes: fallbackNodes,
       predicted_outcome:
         "Set OPENAI_API_KEY in server/.env to enable model-generated biological predictions.",
+      biological_context:
+        "Without an OpenAI key, interpretation is generated from graph heuristics only.",
       aiWarning: "OPENAI_API_KEY is not configured.",
       keyAffectedNodes: fallbackNodes,
       predictedBiologicalOutcome:
@@ -77,7 +83,7 @@ async function generatePathwayAnalysis(pathway, perturbation, centrality, rankin
           role: "user",
           content: [
             "Analyze the perturbation and return ONLY valid JSON with this exact schema:",
-            '{ "summary": "", "affected_nodes": [], "predicted_outcome": "" }',
+            '{ "summary": "", "affected_nodes": [], "predicted_outcome": "", "biological_context": "" }',
             "",
             `Nodes: ${JSON.stringify(pathway.nodes)}`,
             `Edges: ${JSON.stringify(pathway.edges)}`,
@@ -104,6 +110,8 @@ async function generatePathwayAnalysis(pathway, perturbation, centrality, rankin
       affected_nodes: fallbackNodes,
       predicted_outcome:
         "Unable to generate model prediction due to API error. Please verify OpenAI configuration.",
+      biological_context:
+        "Biological context could not be generated because the AI request failed.",
       aiWarning: `OpenAI request failed: ${error.message}`,
       keyAffectedNodes: fallbackNodes,
       predictedBiologicalOutcome:
