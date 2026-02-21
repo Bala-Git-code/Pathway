@@ -1,46 +1,644 @@
+/* ── Google Fonts — loaded before Tailwind directives ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: "Manrope", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: radial-gradient(circle at 20% 20%, #0c4a6e 0%, #020617 40%, #020617 100%);
-  color: #e2e8f0;
-  min-height: 100vh;
+/* ══════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES
+══════════════════════════════════════════════════════════ */
+:root {
+  --color-bg: #060d1a;
+  --color-surface: #0b1629;
+  --color-card: rgba(11, 22, 41, 0.85);
+  --color-border: rgba(34, 211, 238, 0.18);
+  --color-border-subtle: rgba(34, 211, 238, 0.08);
+  --color-cyan: #22d3ee;
+  --color-cyan-dim: rgba(34, 211, 238, 0.15);
+  --color-accent: #38bdf8;
+  --color-glow-cyan: rgba(34, 211, 238, 0.35);
+  --color-glow-blue: rgba(56, 189, 248, 0.25);
 }
 
-* {
-  box-sizing: border-box;
+/* ══════════════════════════════════════════════════════════
+   RESET / BASE — wrapped in @layer so Tailwind base-reset
+   doesn't override our font-family declaration
+══════════════════════════════════════════════════════════ */
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(6, 78, 108, 0.35) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(15, 23, 42, 0.60) 0%, transparent 60%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ── Custom scrollbar ── */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0b1629;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(34, 211, 238, 0.30);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(34, 211, 238, 0.55);
+  }
+
+  /* ── Fix <select> + <option> on Windows / dark backgrounds ── */
+  select {
+    background-color: rgba(2, 6, 23, 0.9);
+    color: #e2e8f0;
+    color-scheme: dark;
+    /* tells the OS to render option list in dark mode */
+  }
+
+  select option {
+    background-color: #0b1629;
+    color: #e2e8f0;
+  }
+
+  select option:disabled {
+    color: #475569;
+  }
+
+  /* ── Remove default autofill blue background ── */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px #020617 inset;
+    -webkit-text-fill-color: #e2e8f0;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
-.hero-grid {
-  background-image:
-    linear-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.12) 1px, transparent 1px);
-  background-size: 44px 44px;
-  animation: drift 22s linear infinite;
-}
+/* ══════════════════════════════════════════════════════════
+   ANIMATED BACKGROUNDS
+══════════════════════════════════════════════════════════ */
 
-/* wider subtle grid for application backdrop */
+/* Full-page grid overlay */
 .app-grid {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
-  background-size: 66px 66px;
-  animation: drift 30s linear infinite;
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-drift 40s linear infinite;
   pointer-events: none;
-  z-index: -1;
-  opacity: 0.4;
+  z-index: 0;
 }
 
-@keyframes drift {
-  0% {
+/* Hero section grid */
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.10) 1px, transparent 1px);
+  background-size: 44px 44px;
+  animation: grid-drift 22s linear infinite;
+}
+
+@keyframes grid-drift {
+  from {
     transform: translate3d(0, 0, 0);
   }
-  100% {
-    transform: translate3d(44px, 44px, 0);
+
+  to {
+    transform: translate3d(60px, 60px, 0);
   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLASSMORPHISM CARDS
+══════════════════════════════════════════════════════════ */
+
+.glass-card {
+  background: var(--color-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.glass-card-sm {
+  background: rgba(11, 22, 41, 0.70);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   GLOW EFFECTS
+══════════════════════════════════════════════════════════ */
+
+.glow-cyan {
+  box-shadow: 0 0 24px var(--color-glow-cyan), 0 0 60px rgba(34, 211, 238, 0.12);
+}
+
+.glow-cyan-sm {
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+}
+
+.glow-text-cyan {
+  text-shadow: 0 0 20px rgba(34, 211, 238, 0.60);
+}
+
+/* ══════════════════════════════════════════════════════════
+   BUTTONS
+══════════════════════════════════════════════════════════ */
+
+/* ── Primary ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.4rem;
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
+  color: #020617;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.30);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #22d3ee, #67e8f9);
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.50);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  background: rgba(30, 41, 59, 0.80);
+  color: #475569;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Secondary ── */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(34, 211, 238, 0.08);
+  color: #a5f3fc;
+  font-weight: 500;
+  font-size: 0.875rem;
+  border: 1px solid rgba(34, 211, 238, 0.30);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: rgba(34, 211, 238, 0.50);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Danger ── */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  background: rgba(239, 68, 68, 0.10);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  font-weight: 500;
+  /* ← was missing */
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.20);
+  border-color: rgba(239, 68, 68, 0.50);
+}
+
+.btn-danger:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FORM INPUTS
+══════════════════════════════════════════════════════════ */
+
+.sci-input {
+  width: 100%;
+  padding: 0.55rem 0.85rem;
+  background: rgba(2, 6, 23, 0.80);
+  color: #e2e8f0;
+  border: 1px solid rgba(34, 211, 238, 0.20);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  /* removes OS select arrow — we keep the custom one */
+  -webkit-appearance: none;
+}
+
+/* Restore the OS arrow specifically for selects */
+select.sci-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.2rem;
+}
+
+.sci-input:focus {
+  border-color: rgba(34, 211, 238, 0.60);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+}
+
+.sci-input::placeholder {
+  color: #475569;
+}
+
+.sci-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════════
+   METRIC CARDS
+══════════════════════════════════════════════════════════ */
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1rem;
+  background: rgba(11, 22, 41, 0.90);
+  border: 1px solid rgba(34, 211, 238, 0.15);
+  border-radius: 12px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+/* Top accent line */
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.50), transparent);
+}
+
+.metric-card:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.08);
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #22d3ee;
+  line-height: 1;
+  margin-top: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════
+   NODE TAGS / BADGES
+══════════════════════════════════════════════════════════ */
+
+.node-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  background: rgba(34, 211, 238, 0.08);
+  border: 1px solid rgba(34, 211, 238, 0.30);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  color: #a5f3fc;
+  font-family: 'JetBrains Mono', monospace;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.node-tag:hover {
+  background: rgba(34, 211, 238, 0.15);
+}
+
+.node-tag.danger {
+  background: rgba(239, 68, 68, 0.10);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.node-tag.success {
+  background: rgba(20, 184, 166, 0.10);
+  border-color: rgba(20, 184, 166, 0.35);
+  color: #5eead4;
+}
+
+/* ══════════════════════════════════════════════════════════
+   LOADING SPINNER
+══════════════════════════════════════════════════════════ */
+
+.spinner {
+  flex-shrink: 0;
+  /* ← was missing — stops it from collapsing inside flex buttons */
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(34, 211, 238, 0.20);
+  border-top-color: #22d3ee;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+/* Overrides for the large overlay spinner */
+.spinner-lg {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 3px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PANEL HELPERS
+══════════════════════════════════════════════════════════ */
+
+/* Step connector between circles */
+.step-connector {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.30), rgba(34, 211, 238, 0.05));
+}
+
+/*
+  Panel section heading.
+  Uses flex only when NOT directly used as a <label> —
+  labels inside flex containers break click-target behaviour.
+  Fixed by making flex a display fallback that still works correctly
+  because label block-level is preserved.
+*/
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #475569;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+
+/* Extend line to the right */
+.panel-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(34, 211, 238, 0.08);
+  min-width: 8px;
+  /* ← prevents collapse when label is very wide */
+}
+
+/* Scrollable tall lists */
+.panel-scroll {
+  overflow-y: auto;
+  max-height: 400px;
+  /* ← increased from 340px for regulatory ranking */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.25) transparent;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ALERT BANNERS
+══════════════════════════════════════════════════════════ */
+
+.alert-info {
+  padding: 0.75rem 1rem;
+  background: rgba(34, 211, 238, 0.06);
+  border: 1px solid rgba(34, 211, 238, 0.20);
+  border-left: 3px solid rgba(34, 211, 238, 0.60);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #a5f3fc;
+}
+
+.alert-error {
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  border-left: 3px solid rgba(239, 68, 68, 0.70);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #fca5a5;
+}
+
+.alert-success {
+  padding: 0.75rem 1rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  border-left: 3px solid rgba(16, 185, 129, 0.70);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #6ee7b7;
+}
+
+.alert-warn {
+  padding: 0.75rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.30);
+  border-left: 3px solid rgba(245, 158, 11, 0.70);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: #fcd34d;
+}
+
+/* ══════════════════════════════════════════════════════════
+   ANIMATIONS
+══════════════════════════════════════════════════════════ */
+
+/* Pulsing status dot */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.pulse {
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+
+/* Page entrance */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease both;
+}
+
+/* Modal / panel slide */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.35s ease both;
+}
+
+/* Tailwind's animate-ping is used in StepIndicator — define it
+   here as a fallback so it still works if Tailwind purges it */
+@keyframes ping {
+
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping {
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TYPOGRAPHY UTILITY
+══════════════════════════════════════════════════════════ */
+
+.mono {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RECHARTS OVERRIDES
+══════════════════════════════════════════════════════════ */
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(6, 13, 26, 0.95) !important;
+  border: 1px solid rgba(34, 211, 238, 0.30) !important;
+  border-radius: 8px !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: #64748b !important;
+  font-size: 11px;
+}
+
+.recharts-legend-item-text {
+  color: #94a3b8 !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   CYTOSCAPE CONTAINER
+══════════════════════════════════════════════════════════ */
+
+.cy-container {
+  width: 100%;
+  height: 420px;
+  border-radius: 10px;
+  overflow: hidden;
+  /* Ensure Cytoscape canvas doesn't bleed over modal overlays */
+  position: relative;
+  z-index: 1;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Z-INDEX LAYERING
+   Modals (z-50 in Tailwind = z-index:50) sit above the
+   fixed .app-grid (z-0) and main content (z-10 range)
+══════════════════════════════════════════════════════════ */
+
+/* Sticky navbar sits above scrolled content but below modals */
+nav {
+  z-index: 40;
+}
+
+/* Ensure main content is above the grid backdrop */
+main {
+  position: relative;
+  z-index: 1;
 }

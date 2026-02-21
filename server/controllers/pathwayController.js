@@ -1,45 +1,45 @@
 const Pathway = require("../models/Pathway");
-const {
-  calculateDegreeCentrality,
-  simulateKnockout,
-  simulateOverexpression,
-  rankRegulatoryNodes,
-} = require("../utils/graphSimulation");
+const { runSimulation } = require("../utils/simulationEngine");
 const { generatePathwayAnalysis } = require("./aiController");
 
-
-
 function validatePathwayPayload(body) {
-  if (!body || typeof body !== "object") {
-    return "Request body is required.";
-  }
-  if (!body.name || typeof body.name !== "string") {
+  if (!body || typeof body !== "object") return "Request body is required.";
+  if (!body.name || typeof body.name !== "string" || !body.name.trim()) {
     return "Pathway name is required.";
   }
-  if (!Array.isArray(body.nodes)) {
-    return "nodes must be an array.";
+  if (!Array.isArray(body.nodes)) return "nodes must be an array.";
+  if (!Array.isArray(body.edges)) return "edges must be an array.";
+
+  // Validate each node shape
+  for (const node of body.nodes) {
+    if (!node.id || typeof node.id !== "string") return "Each node must have a string id.";
+    if (!node.label || typeof node.label !== "string") return "Each node must have a string label.";
   }
-  if (!Array.isArray(body.edges)) {
-    return "edges must be an array.";
-  }
-  // ensure node ids are unique
+
+  // Ensure unique node ids
   const ids = body.nodes.map((n) => n.id);
   const dup = ids.find((id, idx) => ids.indexOf(id) !== idx);
-  if (dup) {
-    return `Duplicate node id detected: ${dup}`;
+  if (dup) return `Duplicate node id detected: ${dup}`;
+
+  // Validate each edge
+  const idSet = new Set(ids);
+  for (const edge of body.edges) {
+    if (!edge.source || !edge.target) return "Each edge must have source and target.";
+    if (!idSet.has(edge.source)) return `Edge references unknown source node: ${edge.source}`;
+    if (!idSet.has(edge.target)) return `Edge references unknown target node: ${edge.target}`;
+    if (edge.source === edge.target) return `Self-loop detected on node: ${edge.source}`;
   }
+
   return null;
 }
 
 async function createPathway(req, res) {
   try {
-    const validationError = validatePathwayPayload(req.body);
-    if (validationError) {
-      return res.status(400).json({ message: validationError });
-    }
+    const err = validatePathwayPayload(req.body);
+    if (err) return res.status(400).json({ message: err });
 
     const pathway = await Pathway.create({
-      name: req.body.name,
+      name: req.body.name.trim(),
       nodes: req.body.nodes,
       edges: req.body.edges,
     });
@@ -52,7 +52,7 @@ async function createPathway(req, res) {
 
 async function getAllPathways(req, res) {
   try {
-    const pathways = await Pathway.find().sort({ createdAt: -1 });
+    const pathways = await Pathway.find().sort({ createdAt: -1 }).lean();
     return res.status(200).json(pathways);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -61,10 +61,8 @@ async function getAllPathways(req, res) {
 
 async function getPathwayById(req, res) {
   try {
-    const pathway = await Pathway.findById(req.params.id);
-    if (!pathway) {
-      return res.status(404).json({ message: "Pathway not found." });
-    }
+    const pathway = await Pathway.findById(req.params.id).lean();
+    if (!pathway) return res.status(404).json({ message: "Pathway not found." });
     return res.status(200).json(pathway);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -73,25 +71,16 @@ async function getPathwayById(req, res) {
 
 async function updatePathway(req, res) {
   try {
-    const validationError = validatePathwayPayload(req.body);
-    if (validationError) {
-      return res.status(400).json({ message: validationError });
-    }
+    const err = validatePathwayPayload(req.body);
+    if (err) return res.status(400).json({ message: err });
 
     const pathway = await Pathway.findByIdAndUpdate(
       req.params.id,
-      {
-        name: req.body.name,
-        nodes: req.body.nodes,
-        edges: req.body.edges,
-      },
+      { name: req.body.name.trim(), nodes: req.body.nodes, edges: req.body.edges },
       { new: true, runValidators: true }
-    );
+    ).lean();
 
-    if (!pathway) {
-      return res.status(404).json({ message: "Pathway not found." });
-    }
-
+    if (!pathway) return res.status(404).json({ message: "Pathway not found." });
     return res.status(200).json(pathway);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -101,9 +90,7 @@ async function updatePathway(req, res) {
 async function deletePathway(req, res) {
   try {
     const pathway = await Pathway.findByIdAndDelete(req.params.id);
-    if (!pathway) {
-      return res.status(404).json({ message: "Pathway not found." });
-    }
+    if (!pathway) return res.status(404).json({ message: "Pathway not found." });
     return res.status(200).json({ message: "Pathway deleted successfully." });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -112,11 +99,8 @@ async function deletePathway(req, res) {
 
 async function getLatestPathway(req, res) {
   try {
-    // return the most recently created pathway; do not fabricate data if none exist
-    const pathway = await Pathway.findOne().sort({ createdAt: -1 });
-    if (!pathway) {
-      return res.status(404).json({ message: "No pathways available." });
-    }
+    const pathway = await Pathway.findOne().sort({ createdAt: -1 }).lean();
+    if (!pathway) return res.status(404).json({ message: "No pathways available." });
     return res.status(200).json(pathway);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -128,72 +112,55 @@ async function perturbPathway(req, res) {
     const { type, nodeId } = req.body;
 
     if (!type || !nodeId) {
-      return res
-        .status(400)
-        .json({ message: "type and nodeId are required for perturbation." });
+      return res.status(400).json({ message: "type and nodeId are required." });
+    }
+    if (!["knockout", "overexpression"].includes(type)) {
+      return res.status(400).json({ message: "type must be knockout or overexpression." });
     }
 
-    if (type !== "knockout" && type !== "overexpression") {
-      return res
-        .status(400)
-        .json({ message: "Perturbation type must be knockout or overexpression." });
+    const pathwayDoc = await Pathway.findById(req.params.id).lean();
+    if (!pathwayDoc) return res.status(404).json({ message: "Pathway not found." });
+
+    // Run the full simulation engine
+    let simResult;
+    try {
+      simResult = runSimulation(pathwayDoc, type, nodeId);
+    } catch (simError) {
+      return res.status(400).json({ message: simError.message });
     }
 
-    const pathwayDoc = await Pathway.findById(req.params.id);
-    if (!pathwayDoc) {
-      return res.status(404).json({ message: "Pathway not found." });
-    }
+    // Attempt AI analysis — never crash the endpoint if AI fails
+    let aiAnalysis = {
+      summary: "AI analysis not available.",
+      affected_nodes: [],
+      predicted_outcome: "",
+      biological_context: "",
+      confidence_score: 0,
+      aiUnavailable: true,
+    };
 
-    const original = pathwayDoc.toObject();
-
-    const nodeExists = original.nodes.some((node) => node.id === nodeId);
-    if (!nodeExists) {
-      return res.status(400).json({ message: "Selected node does not exist." });
-    }
-
-    const perturbed =
-      type === "knockout"
-        ? simulateKnockout(original, nodeId)
-        : simulateOverexpression(original, nodeId);
-
-    const beforeCentrality = calculateDegreeCentrality(original);
-    const centrality = calculateDegreeCentrality(perturbed);
-    const regulatoryRanking = rankRegulatoryNodes(perturbed);
-    // attempt AI analysis but do not let it crash the perturbation
-    let aiAnalysis = {};
     try {
       aiAnalysis = await generatePathwayAnalysis(
-        perturbed,
-        { type, nodeId },
-        centrality,
-        regulatoryRanking
+        simResult.perturbedPathway,
+        simResult.perturbation,
+        simResult.analysis.degreeCentrality,
+        simResult.analysis.regulatoryRanking
       );
+      aiAnalysis.aiUnavailable = false;
     } catch (aiError) {
-      aiAnalysis = {
-        summary: "AI analysis failed or unavailable.",
-        affected_nodes: [],
-        predicted_outcome: "",
-        biological_context: "",
-        aiError: aiError.message || aiError,
-      };
+      aiAnalysis.aiError = aiError.message || String(aiError);
+      // Check if key is missing specifically
+      if (aiError.message && aiError.message.includes("API key")) {
+        aiAnalysis.aiWarning = "OpenAI API key not configured. Add OPENAI_API_KEY to server/.env";
+      }
     }
 
-    // do not overwrite the stored pathway; return the computed perturbation only
     return res.status(200).json({
-      originalPathway: original,
-      pathway: perturbed,
-      perturbation: { type, nodeId },
+      originalPathway: simResult.originalPathway,
+      pathway: simResult.perturbedPathway,
+      perturbation: simResult.perturbation,
       analysis: {
-        degreeCentrality: centrality,
-        beforeDegreeCentrality: beforeCentrality,
-        centralityComparison: {
-          before: beforeCentrality,
-          after: centrality,
-        },
-        regulatoryRanking,
-        highCentralityNodes: regulatoryRanking.slice(0, 3).map((item) => item.nodeId),
-        knockedOutNode: type === "knockout" ? nodeId : null,
-        overexpressedNode: type === "overexpression" ? nodeId : null,
+        ...simResult.analysis,
         ...aiAnalysis,
       },
     });

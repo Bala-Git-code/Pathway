@@ -1,74 +1,83 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import cytoscape from "cytoscape";
 
+/* ── Helpers ── */
 function toElements(pathway) {
   const nodes = (pathway?.nodes || []).map((node) => ({
     data: {
       id: node.id,
-      label: node.label,
-      influenceScore: node.influenceScore || 1,
+      label: node.label || node.id,
+      influenceScore: typeof node.influenceScore === "number" ? node.influenceScore : 1,
     },
   }));
-
-  const edges = (pathway?.edges || []).map((edge, index) => ({
+  const edges = (pathway?.edges || []).map((edge, i) => ({
     data: {
-      id: `${edge.source}-${edge.target}-${index}`,
+      id: `e-${edge.source}-${edge.target}-${i}`,
       source: edge.source,
       target: edge.target,
       type: edge.type || "activation",
     },
   }));
-
   return [...nodes, ...edges];
 }
 
 function edgeKey(edge) {
-  return `${edge.source}->${edge.target}:${edge.type || "activation"}`;
+  return `${edge.source}→${edge.target}:${edge.type || "activation"}`;
 }
 
-function baseStyle() {
+function buildStyle() {
   return [
     {
       selector: "node",
       style: {
         label: "data(label)",
-        color: "#dbeafe",
-        "font-size": 11,
+        color: "#bae6fd",
+        "font-size": 10,
+        "font-family": "JetBrains Mono, monospace",
         "text-wrap": "wrap",
-        "text-max-width": "90px",
+        "text-max-width": "80px",
         "text-valign": "bottom",
-        "background-color": "#1d4ed8",
+        "text-margin-y": 4,
+        "background-color": "#0c4a6e",
         "border-width": 1.5,
-        "border-color": "#38bdf8",
+        "border-color": "#0891b2",
+        "width": 36,
+        "height": 36,
         "overlay-opacity": 0,
+        "transition-property": "background-color, border-color, border-width, width, height",
+        "transition-duration": "400ms",
+        "transition-timing-function": "ease-in-out",
       },
     },
     {
       selector: "edge",
       style: {
-        width: 2.2,
+        width: 2,
         "curve-style": "bezier",
         "target-arrow-shape": "triangle",
-        "line-color": "#64748b",
-        "target-arrow-color": "#64748b",
-        opacity: 0.95,
-        "transition-property": "line-color,opacity,width",
-        "transition-duration": "500ms",
+        "line-color": "#334155",
+        "target-arrow-color": "#334155",
+        opacity: 0.8,
+        "transition-property": "line-color, opacity, width",
+        "transition-duration": "400ms",
         "transition-timing-function": "ease-in-out",
       },
     },
     {
       selector: 'edge[type = "activation"]',
       style: {
-        "line-color": "#22c55e",
-        "target-arrow-color": "#22c55e",
+        "line-color": "#10b981",
+        "target-arrow-color": "#10b981",
+        opacity: 0.85,
       },
     },
     {
       selector: 'edge[type = "inhibition"]',
       style: {
-        "line-color": "#ef4444",
-        "target-arrow-color": "#ef4444",
+        "line-color": "#f43f5e",
+        "target-arrow-color": "#f43f5e",
+        "target-arrow-shape": "tee",
+        opacity: 0.85,
       },
     },
     {
@@ -76,50 +85,65 @@ function baseStyle() {
       style: {
         "border-width": 3,
         "border-color": "#f8fafc",
+        "background-color": "#164e63",
+        width: 42,
+        height: 42,
       },
     },
     {
       selector: "node.high-centrality",
       style: {
-        "background-color": "#facc15",
-        color: "#111827",
-        "border-color": "#fde047",
-        "border-width": 6,
-        // cytoscape doesn't support shadows; will add animation in JS
+        "background-color": "#854d0e",
+        "border-color": "#fbbf24",
+        "border-width": 3,
+        color: "#fde68a",
+        width: 46,
+        height: 46,
       },
     },
     {
       selector: "node.knocked-out",
       style: {
-        "background-color": "#ef4444",
+        "background-color": "#7f1d1d",
+        "border-color": "#ef4444",
+        "border-width": 3,
+        color: "#fca5a5",
+        opacity: 0.55,
       },
     },
     {
       selector: "node.overexpressed",
       style: {
-        "background-color": "#14b8a6",
+        "background-color": "#134e4a",
+        "border-color": "#14b8a6",
+        "border-width": 3,
+        color: "#99f6e4",
+        width: 44,
+        height: 44,
       },
     },
     {
       selector: "node.affected-node",
       style: {
         "border-color": "#22d3ee",
-        "border-width": 4,
-        // pulse animation handled via cytoscape.animate
+        "border-width": 2.5,
       },
     },
     {
       selector: "edge.lost-connection",
       style: {
         "line-style": "dashed",
+        "line-dash-pattern": [6, 4],
         "line-color": "#f97316",
         "target-arrow-color": "#f97316",
-        width: 3,
+        width: 2.5,
+        opacity: 0.6,
       },
     },
   ];
 }
 
+/* ── Component ── */
 export default function GraphViewer({
   originalPathway,
   perturbedPathway,
@@ -128,163 +152,189 @@ export default function GraphViewer({
   pendingKnockoutNode,
   onNodeClick,
 }) {
-  const originalRef = useRef(null);
-  const perturbedRef = useRef(null);
-  const originalCyRef = useRef(null);
-  const perturbedCyRef = useRef(null);
+  const origRef = useRef(null);
+  const pertRef = useRef(null);
+  const origCyRef = useRef(null);
+  const pertCyRef = useRef(null);
 
+  /* Track which edges were removed (shown as dashed orange in original) */
   const lostEdgeIds = useMemo(() => {
-    const originalEdges = originalPathway?.edges || [];
-    const perturbedSet = new Set((perturbedPathway?.edges || []).map(edgeKey));
-    return originalEdges
-      .map((edge, index) => ({ edge, id: `${edge.source}-${edge.target}-${index}` }))
-      .filter(({ edge }) => !perturbedSet.has(edgeKey(edge)))
+    const origEdges = originalPathway?.edges || [];
+    const pertSet = new Set((perturbedPathway?.edges || []).map(edgeKey));
+    return origEdges
+      .map((edge, i) => ({ edge, id: `e-${edge.source}-${edge.target}-${i}` }))
+      .filter(({ edge }) => !pertSet.has(edgeKey(edge)))
       .map(({ id }) => id);
   }, [originalPathway, perturbedPathway]);
 
+  /* Build / rebuild original graph when pathway changes */
   useEffect(() => {
-    if (!originalRef.current) return undefined;
+    if (!origRef.current) return;
     const cy = cytoscape({
-      container: originalRef.current,
+      container: origRef.current,
       elements: toElements(originalPathway),
-      style: baseStyle(),
-      layout: { name: "cose", animate: true, animationDuration: 500, padding: 18 },
+      style: buildStyle(),
+      layout: {
+        name: "cose",
+        animate: true,
+        animationDuration: 600,
+        padding: 24,
+        nodeRepulsion: () => 4000,
+        idealEdgeLength: () => 90,
+      },
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
     });
-    cy.on("tap", "node", (event) => {
-      const node = event.target;
+    cy.on("tap", "node", (evt) => {
       onNodeClick({
-        id: node.id(),
-        label: node.data("label"),
-        influenceScore: node.data("influenceScore"),
+        id: evt.target.id(),
+        label: evt.target.data("label"),
+        influenceScore: evt.target.data("influenceScore"),
       });
     });
-    originalCyRef.current = cy;
-    return () => {
-      cy.destroy();
-      originalCyRef.current = null;
-    };
+    origCyRef.current = cy;
+    return () => { cy.destroy(); origCyRef.current = null; };
   }, [originalPathway, onNodeClick]);
 
+  /* Build / rebuild perturbed graph */
   useEffect(() => {
-    if (!perturbedRef.current) return undefined;
+    if (!pertRef.current) return;
     const cy = cytoscape({
-      container: perturbedRef.current,
+      container: pertRef.current,
       elements: toElements(perturbedPathway),
-      style: baseStyle(),
-      layout: { name: "cose", animate: true, animationDuration: 500, padding: 18 },
+      style: buildStyle(),
+      layout: {
+        name: "cose",
+        animate: true,
+        animationDuration: 600,
+        padding: 24,
+        nodeRepulsion: () => 4000,
+        idealEdgeLength: () => 90,
+      },
+      userZoomingEnabled: true,
+      userPanningEnabled: true,
     });
-    cy.on("tap", "node", (event) => {
-      const node = event.target;
+    cy.on("tap", "node", (evt) => {
       onNodeClick({
-        id: node.id(),
-        label: node.data("label"),
-        influenceScore: node.data("influenceScore"),
+        id: evt.target.id(),
+        label: evt.target.data("label"),
+        influenceScore: evt.target.data("influenceScore"),
       });
     });
-    perturbedCyRef.current = cy;
-    return () => {
-      cy.destroy();
-      perturbedCyRef.current = null;
-    };
+    pertCyRef.current = cy;
+    return () => { cy.destroy(); pertCyRef.current = null; };
   }, [perturbedPathway, onNodeClick]);
 
+  /* Selected node highlight — both graphs */
   useEffect(() => {
-    [originalCyRef.current, perturbedCyRef.current].forEach((cy) => {
+    [origCyRef.current, pertCyRef.current].forEach((cy) => {
       if (!cy) return;
       cy.nodes().removeClass("selected-node");
-      if (selectedNodeId) {
-        cy.$id(selectedNodeId).addClass("selected-node");
-      }
+      if (selectedNodeId) cy.$id(selectedNodeId).addClass("selected-node");
     });
   }, [selectedNodeId]);
 
+  /* Lost-edge dashes on original + analysis classes on perturbed */
   useEffect(() => {
-    const originalCy = originalCyRef.current;
-    const perturbedCy = perturbedCyRef.current;
-    if (!originalCy || !perturbedCy) return;
+    const origCy = origCyRef.current;
+    const pertCy = pertCyRef.current;
+    if (!origCy || !pertCy) return;
 
-    originalCy.edges().removeClass("lost-connection");
-    lostEdgeIds.forEach((id) => {
-      originalCy.$id(id).addClass("lost-connection");
-    });
+    origCy.edges().removeClass("lost-connection");
+    lostEdgeIds.forEach((id) => origCy.$id(id).addClass("lost-connection"));
 
-    perturbedCy.nodes().removeClass("high-centrality knocked-out overexpressed affected-node");
-    (analysis?.highCentralityNodes || []).forEach((nodeId) => {
-      perturbedCy.$id(nodeId).addClass("high-centrality");
+    pertCy.nodes().removeClass("high-centrality knocked-out overexpressed affected-node");
+    (analysis?.highCentralityNodes || []).forEach((id) => {
+      pertCy.$id(id).addClass("high-centrality");
     });
-    if (analysis?.knockedOutNode) {
-      perturbedCy.$id(analysis.knockedOutNode).addClass("knocked-out");
-    }
-    if (analysis?.overexpressedNode) {
-      perturbedCy.$id(analysis.overexpressedNode).addClass("overexpressed");
-    }
-    (analysis?.affected_nodes || []).forEach((nodeId) => {
-      perturbedCy.$id(nodeId).addClass("affected-node");
-    });
+    if (analysis?.knockedOutNode) pertCy.$id(analysis.knockedOutNode).addClass("knocked-out");
+    if (analysis?.overexpressedNode) pertCy.$id(analysis.overexpressedNode).addClass("overexpressed");
+    (analysis?.affected_nodes || []).forEach((id) => pertCy.$id(id).addClass("affected-node"));
   }, [analysis, lostEdgeIds]);
 
+  /* Knockout preview fade */
   useEffect(() => {
-    if (!perturbedCyRef.current || !pendingKnockoutNode) return;
-    const targetNode = perturbedCyRef.current.$id(pendingKnockoutNode);
-    if (targetNode.length === 0) return;
-    // fade-out animation for knockout preview
-    targetNode.animate(
-      {
-        style: { opacity: 0.05, "background-color": "#ef4444" },
-      },
-      { duration: 420 }
-    );
+    const cy = pertCyRef.current;
+    if (!cy || !pendingKnockoutNode) return;
+    const node = cy.$id(pendingKnockoutNode);
+    if (!node.length) return;
+    node.animate({ style: { opacity: 0.1, "background-color": "#ef4444" } }, { duration: 350 });
   }, [pendingKnockoutNode]);
 
-  // animate high-centrality nodes by pulsing border-width, with cancel guard
+  /* Pulse high-centrality nodes */
   useEffect(() => {
-    let canceled = false;
-    const perturbedCy = perturbedCyRef.current;
-    if (!perturbedCy) return;
-    (analysis?.highCentralityNodes || []).forEach((id) => {
-      const node = perturbedCy.$id(id);
-      if (node.length === 0) return;
-      node.animate({ style: { "border-width": 10 } }, { duration: 600 }).then(() => {
-        if (!canceled && perturbedCyRef.current) {
-          node.animate({ style: { "border-width": 6 } }, { duration: 600 });
-        }
-      });
-    });
-    return () => {
-      canceled = true;
+    let live = true;
+    const cy = pertCyRef.current;
+    if (!cy) return;
+    const pulse = (node) => {
+      if (!live || !pertCyRef.current) return;
+      node.animate({ style: { "border-width": 5 } }, { duration: 700 })
+        .then(() => { if (live) node.animate({ style: { "border-width": 3 } }, { duration: 700 }).then(() => pulse(node)); });
     };
+    (analysis?.highCentralityNodes || []).forEach((id) => {
+      const node = cy.$id(id);
+      if (node.length) pulse(node);
+    });
+    return () => { live = false; };
   }, [analysis?.highCentralityNodes]);
 
+  const hasOriginal = (originalPathway?.nodes?.length ?? 0) > 0;
+  const hasPerturbed = (perturbedPathway?.nodes?.length ?? 0) > 0;
 
-  // pulse affected nodes when they change, with cancel guard
-  useEffect(() => {
-    let canceled = false;
-    const perturbedCy = perturbedCyRef.current;
-    if (!perturbedCy) return;
-    (analysis?.affected_nodes || []).forEach((id) => {
-      const node = perturbedCy.$id(id);
-      if (node.length === 0) return;
-      node.animate({ style: { "border-width": 8 } }, { duration: 500 }).then(() => {
-        if (!canceled && perturbedCyRef.current) {
-          node.animate({ style: { "border-width": 4 } }, { duration: 500 });
-        }
-      });
-    });
-    return () => {
-      canceled = true;
-    };
-  }, [analysis?.affected_nodes]);
+  const EmptyState = ({ label }) => (
+    <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-slate-700 bg-slate-900/60">
+        <svg viewBox="0 0 24 24" fill="none" className="h-6 w-6 text-slate-600">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      </div>
+      <p className="text-xs text-slate-500">{label}</p>
+    </div>
+  );
 
   return (
-    <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <div className="rounded-2xl border border-slate-800/90 bg-slate-950/75 p-3 shadow-[0_0_48px_rgba(8,145,178,0.15)]">
-        <h3 className="mb-2 text-xs uppercase tracking-wide text-slate-400">Original Network</h3>
-        <div ref={originalRef} className="h-[520px] w-full rounded-xl bg-slate-900/50" />
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* Original */}
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-cyan-950/60 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-cyan-500" />
+            <span className="mono text-xs font-semibold uppercase tracking-widest text-slate-400">
+              Original Network
+            </span>
+          </div>
+          <span className="mono text-xs text-slate-600">
+            {originalPathway?.nodes?.length ?? 0}N · {originalPathway?.edges?.length ?? 0}E
+          </span>
+        </div>
+        <div ref={origRef} className="cy-container bg-[#060d1a]">
+          {!hasOriginal && <EmptyState label="Add nodes to build your pathway" />}
+        </div>
       </div>
-      <div className="rounded-2xl border border-slate-800/90 bg-slate-950/75 p-3 shadow-[0_0_48px_rgba(8,145,178,0.2)]">
-        <h3 className="mb-2 text-xs uppercase tracking-wide text-slate-400">Perturbed Network</h3>
-        <div ref={perturbedRef} className="h-[520px] w-full rounded-xl bg-slate-900/50" />
+
+      {/* Perturbed */}
+      <div className="glass-card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-cyan-950/60 px-4 py-2.5">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-2 w-2 rounded-full ${analysis ? "bg-amber-400" : "bg-slate-600"
+                }`}
+            />
+            <span className="mono text-xs font-semibold uppercase tracking-widest text-slate-400">
+              {analysis ? "Perturbed Network" : "Awaiting Simulation"}
+            </span>
+          </div>
+          <span className="mono text-xs text-slate-600">
+            {perturbedPathway?.nodes?.length ?? 0}N · {perturbedPathway?.edges?.length ?? 0}E
+          </span>
+        </div>
+        <div ref={pertRef} className="cy-container bg-[#060d1a]">
+          {!hasPerturbed && (
+            <EmptyState label={analysis ? "No perturbed nodes" : "Run simulation to see perturbed network"} />
+          )}
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
