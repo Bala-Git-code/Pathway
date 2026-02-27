@@ -1,4 +1,4 @@
-AI-Based Biological Pathway Simulation Framework
+# AI-Based Biological Pathway Simulation Framework
 
 An AI-powered web platform that models biological pathways as directed graph networks, enables perturbation simulation, performs structural network analysis, and generates AI-driven interpretations of system-level impact.
 
