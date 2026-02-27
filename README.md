@@ -1,200 +1,181 @@
-# Bio Pathway AI
+AI-Based Biological Pathway Simulation Framework
 
-AI-enabled MERN platform for **user‑driven** biological pathway construction, dynamic perturbation simulation, graph analytics, and downstream AI‑powered biological interpretation.
+An AI-powered web platform that models biological pathways as directed graph networks, enables perturbation simulation, performs structural network analysis, and generates AI-driven interpretations of system-level impact.
 
-## Tech Stack
+📌 Overview
 
-- Frontend: React (Vite), React Router, Axios, Cytoscape.js, Tailwind CSS
-- Backend: Node.js, Express, MongoDB (Mongoose), OpenAI SDK, dotenv, CORS, Nodemon
+Biological pathways are complex interaction networks between genes and proteins that regulate cellular behavior. Understanding how these networks respond to perturbations (e.g., gene knockout or overexpression) is critical for systems biology research.
 
-## Project Structure
+This project provides a computational framework that:
 
-```text
-bio-pathway-ai/
-│
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── GraphViewer.jsx
-│   │   │   ├── PerturbationPanel.jsx
-│   │   │   ├── AnalysisPanel.jsx
-│   │   │   └── Navbar.jsx
-│   │   ├── pages/
-│   │   │   ├── Home.jsx
-│   │   │   └── Dashboard.jsx
-│   │   ├── services/
-│   │   │   └── api.js
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   └── index.css
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── server/
-│   ├── controllers/
-│   │   ├── pathwayController.js
-│   │   └── aiController.js
-│   ├── models/
-│   │   └── Pathway.js
-│   ├── routes/
-│   │   ├── pathwayRoutes.js
-│   │   └── aiRoutes.js
-│   ├── utils/
-│   │   └── graphSimulation.js
-│   ├── config/
-│   │   └── db.js
-│   ├── server.js
-│   └── package.json
-│
-└── README.md
-```
+Models biological pathways as directed graphs
 
-## Features
+Simulates perturbations dynamically
 
-- Create and persist biological pathway networks (nodes + edges) starting from a blank slate
-- Full CRUD API for pathways
-- Simulate:
-  - Node knockout (removes node and connected edges)
-  - Node overexpression (increases influence score)
-- Compute:
-  - Degree centrality
-  - Regulatory node importance ranking
-- OpenAI analysis:
-  - Biological impact summary
-  - Key affected nodes
-  - Predicted downstream pathway effects
-- Cytoscape visualization:
-  - Before/after perturbation comparison
-  - Color coding:
-    - Normal nodes: gray
-    - Knocked-out node: red
-    - High-centrality nodes: yellow
-    - Overexpressed node: green
+Computes structural network metrics
 
-## Prerequisites
+Uses AI to interpret structural changes
 
-- Node.js 18+
-- npm 9+
-- MongoDB Atlas URI or local MongoDB
-- OpenAI API key
+Visualizes results interactively
 
-## Installation
+The system combines graph theory, simulation modeling, and AI reasoning into a unified full-stack platform.
 
-Run from the `bio-pathway-ai` root:
+🚀 Key Features
+🔹 Dynamic Pathway Construction
 
-```bash
+Add nodes (proteins/genes)
+
+Define activation/inhibition edges
+
+Real-time graph rendering
+
+🔹 Perturbation Simulation
+
+Node knockout simulation
+
+Node overexpression simulation
+
+Automatic recalculation of network structure
+
+🔹 Structural Network Analysis
+
+Degree centrality calculation
+
+Node influence ranking
+
+Connectivity analysis
+
+Before vs after comparison
+
+🔹 AI-Powered Interpretation
+
+OpenAI API integration
+
+Contextual biological reasoning
+
+Structured analysis output
+
+Downstream impact prediction
+
+🔹 Interactive Visualization
+
+Graph rendering via Cytoscape.js
+
+Dynamic node highlighting
+
+Visual comparison of structural changes
+
+Graphical metric representations
+
+🏗 Tech Stack
+🖥 Frontend
+
+React.js
+
+Tailwind CSS
+
+Cytoscape.js
+
+Axios
+
+⚙ Backend
+
+Node.js
+
+Express.js
+
+MongoDB (Mongoose)
+
+🤖 AI Integration
+
+OpenAI API (GPT model)
+
+🛠 Tools
+
+VS Code
+
+Git & GitHub
+
+MongoDB Atlas (optional)
+
+Postman (API testing)
+
+🧠 System Architecture
+Frontend (React + Cytoscape)
+        ↓
+REST API (Express.js)
+        ↓
+Simulation Engine (Graph Logic)
+        ↓
+Metric Computation
+        ↓
+OpenAI API (Interpretation Layer)
+        ↓
+Structured AI Output → Dashboard
+📊 Core Functional Flow
+
+User constructs a biological pathway.
+
+System models it as a directed graph.
+
+User selects a perturbation (knockout/overexpression).
+
+Simulation engine updates graph structure.
+
+Network metrics are recalculated.
+
+OpenAI API interprets structural changes.
+
+Results are displayed visually and analytically.
+
+🔧 Installation & Setup
+1️⃣ Clone the Repository
+git clone https://github.com/your-username/bio-pathway-ai.git
 cd bio-pathway-ai
-cd server && npm install
-cd ../client && npm install
-```
+2️⃣ Setup Backend
+cd server
+npm install
 
-## Environment Setup
+Create a .env file in /server:
 
-### Server `.env` (`server/.env`)
-
-```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 OPENAI_API_KEY=your_openai_api_key
-```
 
-### Client `.env` (`client/.env`)
+Run backend:
 
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-## MongoDB Connection Setup
-
-- For MongoDB Atlas:
-  1. Create a cluster.
-  2. Create a database user.
-  3. Allow your IP in Network Access.
-  4. Copy the connection string into `MONGO_URI`.
-- For local MongoDB:
-  - Example: `MONGO_URI=mongodb://127.0.0.1:27017/bio-pathway-ai`
-
-## OpenAI Integration Setup
-
-1. Create an API key from the OpenAI dashboard.
-2. Add it to `server/.env` as `OPENAI_API_KEY`.
-3. The backend uses OpenAI Responses API with:
-   - System prompt:
-     - `You are a computational biologist analyzing signaling pathways.`
-   - User payload including:
-     - Nodes
-     - Edges
-     - Perturbation
-     - Centrality ranking
-     - Regulatory node importance
-4. Expected structured output:
-   - `summary`
-   - `keyAffectedNodes`
-   - `predictedBiologicalOutcome`
-   - `criticalRegulators`
-
-## Running the Application
-
-### Backend (development)
-
-```bash
-cd server
 npm run dev
-```
-
-### Backend (production mode)
-
-```bash
-cd server
-npm start
-```
-
-### Frontend
-
-```bash
+3️⃣ Setup Frontend
 cd client
+npm install
 npm run dev
-```
+🌐 Environment Variables
+Variable	Description
+PORT	Backend server port
+MONGO_URI	MongoDB connection string
+OPENAI_API_KEY	OpenAI API key
+🧪 Example Use Case
 
-Frontend default URL:
-- `http://localhost:5173`
+Create a signaling pathway.
 
-Backend default URL:
-- `http://localhost:5000`
+Run knockout simulation on a key node.
 
-Health check:
-- `GET http://localhost:5000/health`
+Observe connectivity reduction.
 
-## API Endpoints
+View centrality changes.
 
-### Pathways
+Review AI-generated biological interpretation.
 
-- `POST /pathways` create pathway
-- `GET /pathways` list pathways
-- `GET /pathways/latest` latest pathway
-- `GET /pathways/:id` pathway by ID
-- `PUT /pathways/:id` update pathway
-- `DELETE /pathways/:id` delete pathway
-- `POST /pathways/:id/perturb` run perturbation
+🎯 Why This Project Matters
 
-Example perturbation payload:
+Converts static biological diagrams into dynamic computational models.
 
-```json
-{
-  "type": "knockout",
-  "nodeId": "NODE_ID_HERE"
-}
-```
+Enables in-silico experimentation.
 
-### AI
+Bridges graph theory with AI reasoning.
 
-- `POST /ai/analyze` direct analysis endpoint
+Provides explainable simulation results.
 
-## Workflow Summary
+⚠️ Disclaimer
 
-1. Build your pathway interactively in the Workspace (nodes, edges, name).
-2. Save or load pathways; each network is persisted to the database.
-3. Select a node and perturbation (knockout/overexpression) once a pathway exists.
-4. Run AI‑assisted simulation; results are stored and displayed with live animations.
-5. Visit the Analysis view for rich metrics, comparisons, and an AI biological interpretation panel.
-
+This platform provides computational simulations and AI-assisted interpretations for exploratory and educational purposes. It does not replace experimental biological validation.
