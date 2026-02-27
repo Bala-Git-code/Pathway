@@ -1,74 +1,93 @@
 # AI-Based Biological Pathway Simulation Framework
+📖 Project Description
 
-An AI-powered web platform that models biological pathways as directed graph networks, enables perturbation simulation, performs structural network analysis, and generates AI-driven interpretations of system-level impact.
+The AI-Based Biological Pathway Simulation Framework is a full-stack web application that models biological pathways as directed graph networks, enables dynamic perturbation simulation, performs structural network analysis, and integrates AI-based reasoning for contextual interpretation.
 
-📌 Overview
+The platform allows users to construct interaction networks, simulate node-level changes (e.g., knockout or overexpression), analyze structural impact using graph metrics, and receive AI-generated explanations of system-level effects.
 
-Biological pathways are complex interaction networks between genes and proteins that regulate cellular behavior. Understanding how these networks respond to perturbations (e.g., gene knockout or overexpression) is critical for systems biology research.
+## 🎯 Objectives
 
-This project provides a computational framework that:
+Convert biological pathways into computational graph models
 
-Models biological pathways as directed graphs
+Simulate structural perturbations dynamically
 
-Simulates perturbations dynamically
+Identify influential regulatory nodes
 
-Computes structural network metrics
+Provide quantitative network analysis
 
-Uses AI to interpret structural changes
+Integrate AI for contextual interpretation
 
-Visualizes results interactively
+Deliver interactive visualization in a user-friendly interface
 
-The system combines graph theory, simulation modeling, and AI reasoning into a unified full-stack platform.
+## ⚙️ Core Functionalities
+1️⃣ Pathway Construction
 
-🚀 Key Features
-🔹 Dynamic Pathway Construction
+Add nodes representing molecular entities
 
-Add nodes (proteins/genes)
+Define directed edges (activation/inhibition)
 
-Define activation/inhibition edges
+Real-time interactive graph rendering
 
-Real-time graph rendering
-
-🔹 Perturbation Simulation
+2️⃣ Perturbation Simulation
 
 Node knockout simulation
 
 Node overexpression simulation
 
-Automatic recalculation of network structure
+Automatic graph restructuring
 
-🔹 Structural Network Analysis
+3️⃣ Structural Network Analysis
 
 Degree centrality calculation
 
 Node influence ranking
 
-Connectivity analysis
+Connectivity assessment
 
-Before vs after comparison
+Before vs after structural comparison
 
-🔹 AI-Powered Interpretation
+4️⃣ AI-Based Interpretation
 
 OpenAI API integration
 
-Contextual biological reasoning
-
 Structured analysis output
 
-Downstream impact prediction
+Downstream effect prediction
 
-🔹 Interactive Visualization
+Contextual explanation of network changes
 
-Graph rendering via Cytoscape.js
+5️⃣ Interactive Visualization
 
-Dynamic node highlighting
+Dynamic graph visualization using Cytoscape.js
 
-Visual comparison of structural changes
+Node highlighting based on influence
 
 Graphical metric representations
 
-🏗 Tech Stack
-🖥 Frontend
+## 🏗 System Architecture
+
+Frontend (React + Cytoscape.js)
+↓
+Backend REST API (Node.js + Express.js)
+↓
+Graph Simulation Engine
+↓
+Metric Computation Layer
+↓
+OpenAI API (AI Reasoning Layer)
+↓
+Structured Output → Dashboard
+
+## 💻 Tech Stack
+🔹 Languages
+
+JavaScript
+
+HTML
+
+CSS
+
+🔹 Frontend
 
 React.js
 
@@ -78,7 +97,7 @@ Cytoscape.js
 
 Axios
 
-⚙ Backend
+🔹 Backend
 
 Node.js
 
@@ -86,53 +105,41 @@ Express.js
 
 MongoDB (Mongoose)
 
-🤖 AI Integration
+🔹 AI Integration
 
 OpenAI API (GPT model)
 
-🛠 Tools
+🔹 Tools
 
-VS Code
+## VS Code
 
 Git & GitHub
 
-MongoDB Atlas (optional)
+MongoDB Atlas
 
-Postman (API testing)
+Postman
 
-🧠 System Architecture
-Frontend (React + Cytoscape)
-        ↓
-REST API (Express.js)
-        ↓
-Simulation Engine (Graph Logic)
-        ↓
-Metric Computation
-        ↓
-OpenAI API (Interpretation Layer)
-        ↓
-Structured AI Output → Dashboard
-📊 Core Functional Flow
+🔄 Workflow
 
-User constructs a biological pathway.
+User constructs a pathway network.
 
 System models it as a directed graph.
 
-User selects a perturbation (knockout/overexpression).
+User selects a perturbation type.
 
-Simulation engine updates graph structure.
+Simulation engine updates network structure.
 
-Network metrics are recalculated.
+Structural metrics are recalculated.
 
-OpenAI API interprets structural changes.
+OpenAI API generates contextual interpretation.
 
-Results are displayed visually and analytically.
+Results are visualized in the dashboard.
 
-🔧 Installation & Setup
-1️⃣ Clone the Repository
+## 🚀 Installation Guide
+Clone Repository
 git clone https://github.com/your-username/bio-pathway-ai.git
 cd bio-pathway-ai
-2️⃣ Setup Backend
+Backend Setup
 cd server
 npm install
 
@@ -145,7 +152,7 @@ OPENAI_API_KEY=your_openai_api_key
 Run backend:
 
 npm run dev
-3️⃣ Setup Frontend
+Frontend Setup
 cd client
 npm install
 npm run dev
@@ -154,28 +161,18 @@ Variable	Description
 PORT	Backend server port
 MONGO_URI	MongoDB connection string
 OPENAI_API_KEY	OpenAI API key
-🧪 Example Use Case
+📊 Example Use Case
 
-Create a signaling pathway.
+Construct a signaling pathway
 
-Run knockout simulation on a key node.
+Perform knockout simulation
 
-Observe connectivity reduction.
+Observe connectivity reduction
 
-View centrality changes.
+Compare centrality changes
 
-Review AI-generated biological interpretation.
+Review AI-generated interpretation
 
-🎯 Why This Project Matters
+🛡 Disclaimer
 
-Converts static biological diagrams into dynamic computational models.
-
-Enables in-silico experimentation.
-
-Bridges graph theory with AI reasoning.
-
-Provides explainable simulation results.
-
-⚠️ Disclaimer
-
-This platform provides computational simulations and AI-assisted interpretations for exploratory and educational purposes. It does not replace experimental biological validation.
+This framework provides computational simulations and AI-assisted interpretations for exploratory and educational purposes. It does not replace experimental biological validation.
